@@ -14,12 +14,12 @@ use super::calculations::{exponential_smoothing, normalize};
 
 #[derive(Clone, Debug)]
 pub struct Hist1D {
-    nbins: usize,
-    xlow: f64,
-    xhigh: f64,
-    bin_width: f64,
-    bins: Vec<f64>,
-    counts: Vec<f64>,
+    pub nbins: usize,
+    pub xlow: f64,
+    pub xhigh: f64,
+    pub bin_width: f64,
+    pub bins: Vec<f64>,
+    pub counts: Vec<f64>,
 }
 
 impl Hist1D {
