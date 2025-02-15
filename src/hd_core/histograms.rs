@@ -11,6 +11,7 @@ use std::path::Path;
 use std::usize;
 
 use super::calculations::{exponential_smoothing, normalize};
+use super::utils::UserConfig;
 
 #[derive(Clone, Debug)]
 pub struct Hist1D {
@@ -162,19 +163,6 @@ pub fn hist_square_diff(
         .collect();
 
     return Ok(result);
-}
-
-#[derive(Debug, Clone)]
-pub struct MinMax {
-    pub xlow: f64,
-    pub xhigh: f64,
-}
-
-#[derive(Debug)]
-pub struct MinMaxPlateResult {
-    pub min_max: Vec<(String, MinMax)>,
-    pub features: Vec<String>,
-    pub problemativ_features: Option<Vec<String>>,
 }
 
 // pub fn get_min_max_plate<P: AsRef<Path>>(

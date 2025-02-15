@@ -1,4 +1,16 @@
 #![allow(unused_parens)]
+
+use core::f64;
+use dashmap::DashMap;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::collections::{HashMap, HashSet};
+use std::error::Error;
+use std::fs::File;
+use std::io::BufReader;
+use std::usize;
+
+use super::utils::UserConfig;
+
 pub fn exponential_smoothing(x: &[f64], alpha: f64) -> Vec<f64> {
     let n = x.len();
     let mut smoothing: Vec<f64> = Vec::with_capacity(n);
@@ -30,4 +42,175 @@ pub fn normalize(x: &[f64]) -> Vec<f64> {
     } else {
         return x.iter().map(|&e| e / sum).collect();
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct MinMax {
+    pub xlow: f64,
+    pub xhigh: f64,
+}
+
+#[derive(Debug)]
+pub struct MinMaxPlateResult {
+    pub min_max: Vec<(String, MinMax)>,
+    pub features: Vec<String>,
+    pub problemativ_features: Option<Vec<String>>,
+}
+
+pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<dyn Error>> {
+    let file = File::open(config.path.clone())?;
+    let reader = BufReader::new(file);
+
+    let mut csv_reader = csv::ReaderBuilder::new()
+        .delimiter(b'\t')
+        .has_headers(true)
+        .from_reader(reader);
+
+    let headers = csv_reader.headers()?.clone();
+    let headers_len = headers.len();
+    let headers_vec: Vec<String> = headers.iter().map(|s| s.to_string()).collect();
+
+    // get indices for id columns
+    let id_col_idx: Vec<usize> = config
+        .id_cols
+        .clone()
+        .iter()
+        .map(|i| headers_vec.iter().position(|h| i == h))
+        .collect::<Option<Vec<usize>>>()
+        .ok_or("id_col_idx: ID col(s) not found!")?;
+
+    // get indices for useless feats
+    let useless_idx: Option<Vec<usize>> = config.useless_cols.as_ref().map(|cols| {
+        cols.iter()
+            .filter_map(|i| headers_vec.iter().position(|h| h == i))
+            .collect()
+    });
+
+    let feature_idx: Vec<usize> = (0..headers_len)
+        .filter(|i| {
+            !id_col_idx.contains(i)
+                && useless_idx
+                    .as_ref()
+                    .map_or(true, |useless| !useless.contains(i))
+        })
+        .collect();
+
+    let mut feats: Vec<String> = feature_idx
+        .iter()
+        .map(|&x| headers_vec[x].clone())
+        .collect();
+    let xlow: DashMap<String, f64> = DashMap::new();
+    let xhigh: DashMap<String, f64> = DashMap::new();
+
+    for feat in &feats {
+        xlow.insert(feat.clone(), f64::NAN);
+        xhigh.insert(feat.clone(), f64::NAN);
+    }
+
+    for res in csv_reader.records() {
+        let record = res?;
+
+        feature_idx.par_iter().for_each(|&i| {
+            let feat = &headers_vec[i];
+            let field = &record[i];
+
+            if let Ok(val) = field.parse::<f64>() {
+                if val.is_finite() {
+                    // min field
+                    xlow.entry(feat.to_string()).and_modify(|e| {
+                        if e.is_nan() {
+                            *e = val;
+                        } else {
+                            *e = e.min(val);
+                        }
+                    });
+
+                    // max field
+                    xhigh.entry(feat.to_string()).and_modify(|e| {
+                        if e.is_nan() {
+                            *e = val;
+                        } else {
+                            *e = e.max(val);
+                        }
+                    });
+                }
+            }
+
+            // nan is skipped
+        });
+    }
+
+    adjust_min_max(&xlow, &xhigh, &feats);
+
+    let xlow: HashMap<String, f64> = xlow.into_iter().collect();
+    let xhigh: HashMap<String, f64> = xhigh.into_iter().collect();
+
+    // drop and find problematic features
+    let mut problematic_features: HashSet<String> = HashSet::new();
+    for feat in &feats {
+        let low = *xlow.get(feat).unwrap();
+        let high = *xlow.get(feat).unwrap();
+        if low.is_nan() && high.is_nan() {
+            problematic_features.insert(feat.clone());
+        }
+    }
+
+    let mut min_max_vec: Vec<(String, MinMax)> = Vec::new();
+    for feat in &feats {
+        if !problematic_features.contains(feat) {
+            let low = xlow.get(feat).unwrap();
+            let high = xhigh.get(feat).unwrap();
+
+            min_max_vec.push((
+                feat.clone(),
+                MinMax {
+                    xlow: *low,
+                    xhigh: *high,
+                },
+            ));
+        }
+    }
+
+    //remove problematic_features
+    feats.retain(|feat| !problematic_features.contains(feat));
+
+    let problematic_features_vec = if !problematic_features.is_empty() {
+        let prob_feats_list: Vec<String> = problematic_features.into_iter().collect();
+        Some(prob_feats_list)
+    } else {
+        None
+    };
+
+    if config.verbose.clone() {
+        if let Some(ref prob_vec) = problematic_features_vec {
+            eprintln!("len bad features: {}", prob_vec.len());
+        }
+        eprintln!("len of good feats: {}", feats.len())
+    }
+
+    let res = MinMaxPlateResult {
+        min_max: min_max_vec,
+        features: feats,
+        problemativ_features: problematic_features_vec,
+    };
+
+    return Ok(res);
+}
+
+fn adjust_min_max(xlow: &DashMap<String, f64>, xhigh: &DashMap<String, f64>, feats: &[String]) {
+    feats.par_iter().for_each(|feat| {
+        let low = xlow.get(feat).map(|v| *v).unwrap_or(f64::NAN);
+        let high = xhigh.get(feat).map(|v| *v).unwrap_or(f64::NAN);
+        if low.is_nan() || high.is_nan() {
+            return;
+        } else if low == high {
+            let adjust_high = if low != 0.0 {
+                low + low + 0.5
+            } else {
+                low + 1.0
+            };
+
+            xhigh.insert(feat.clone(), adjust_high);
+        }
+    });
 }
