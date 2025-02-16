@@ -2,8 +2,14 @@ use histdiff_core::{get_min_max_plate, UserConfig};
 
 #[test]
 fn test_minmax() {
-    let path = "/Users/dterciano/Desktop/LokeyLabFiles/TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellbycell.tsv";
+    // global thread pool
+    // rayon::ThreadPoolBuilder::new()
+    //     .num_threads(15)
+    //     .build_global()
+    //     .unwrap();
 
+    // let path = "/Users/dterciano/Desktop/LokeyLabFiles/TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellbycell.tsv";
+    let path = "/home/derfelt/LokeyLabFiles/TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellbycell.tsv";
     let id: Vec<String> = vec!["WellName".into()];
     let useless: Option<Vec<String>> = {
         let vec = vec![
@@ -22,6 +28,8 @@ fn test_minmax() {
         .collect();
         Some(vec)
     };
+
+    let useless = None;
 
     let veh_cntrl: Vec<String> = vec!["A1".into(), "P24".into()];
 
