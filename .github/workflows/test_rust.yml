@@ -23,4 +23,4 @@ jobs:
       - name: build
         run: cargo build --verbose
       - name: run tests
-        run: cargo test --test hist1d_test --test hist_sqauare_diff_test --verbose
+        run: cargo test --test hist1d_test --test hist_square_diff_test --verbose
