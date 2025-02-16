@@ -63,6 +63,7 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
 
     let mut csv_reader = csv::ReaderBuilder::new()
         .delimiter(b'\t')
+        .flexible(true)
         .has_headers(true)
         .from_reader(reader);
 
@@ -107,8 +108,14 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
         xhigh.insert(feat.clone(), f64::NAN);
     }
 
+    // NOTE: Read Start Time
+    let start_t = std::time::Instant::now();
+
     for res in csv_reader.records() {
         let record = res?;
+        if record.len() != headers_len {
+            continue;
+        }
 
         feature_idx.par_iter().for_each(|&i| {
             let feat = &headers_vec[i];
@@ -139,6 +146,14 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
             // nan is skipped
         });
     }
+
+    // NOTE: End of start time
+    if config.verbose {
+        eprintln!("End of reading MIN_MAX. Time: {:?}", start_t.elapsed());
+    }
+
+    // NOTE: Start of Adjustment and Exporting
+    let start_t = std::time::Instant::now();
 
     adjust_min_max(&xlow, &xhigh, &feats);
 
@@ -181,7 +196,12 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
         None
     };
 
-    if config.verbose.clone() {
+    // NOTE: End of start time
+    if config.verbose {
+        eprintln!("End of processing. Time: {:?}", start_t.elapsed());
+    }
+
+    if config.verbose {
         if let Some(ref prob_vec) = problematic_features_vec {
             eprintln!("len bad features: {}", prob_vec.len());
         }

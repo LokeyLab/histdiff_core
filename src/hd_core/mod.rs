@@ -1,3 +1,3 @@
-mod calculations;
+pub mod calculations;
 pub mod histograms;
-mod utils;
+pub mod utils;
