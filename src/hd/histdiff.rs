@@ -1,0 +1,132 @@
+use core::f64;
+use dashmap::{mapref::entry, DashMap};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fs::File,
+    io::BufReader,
+};
+
+use crate::{
+    get_min_max_plate,
+    hd_core::{histograms, utils::clean_well_names},
+    Hist1D, UserConfig,
+};
+
+#[allow(dead_code)]
+pub fn calculate_scores(config: &UserConfig) -> Result<(), Box<dyn Error>> {
+    let plate_def = &config.plate_def;
+
+    let min_max = get_min_max_plate(config)?;
+    let min_max_vec = min_max.min_max;
+    let features = min_max.features;
+
+    let file = File::open(&config.path)?;
+    let reader = BufReader::new(file);
+    let mut csv_reader = csv::ReaderBuilder::new()
+        .delimiter(b'\t')
+        .has_headers(true)
+        .flexible(true)
+        .from_reader(reader);
+
+    let headers = csv_reader.headers()?.clone();
+    let headers_len = headers.len();
+    let headers_vec: Vec<String> = headers.into_iter().map(|x| x.to_string()).collect();
+
+    let id_col_idx: &Vec<usize> = &config
+        .id_cols
+        .iter()
+        .map(|col| headers.iter().position(|h| h == col))
+        .collect::<Option<Vec<_>>>()
+        .ok_or("ID Column not found in headers")?;
+
+    let useless_idx: Option<Vec<usize>> = config.useless_cols.as_ref().map(|cols| {
+        cols.iter()
+            .filter_map(|i| headers_vec.iter().position(|h| h == i))
+            .collect()
+    });
+
+    let feature_idx: Vec<usize> = (0..headers_len)
+        .filter(|i| {
+            !id_col_idx.contains(i)
+                && useless_idx
+                    .as_ref()
+                    .map_or(true, |useless| !useless.contains(i))
+        })
+        .collect();
+
+    let histograms: DashMap<String, DashMap<String, Hist1D>> = DashMap::new();
+
+    for record in csv_reader.records() {
+        let rec = record?;
+        if rec.len() != headers_len {
+            continue;
+        }
+
+        // in case there are multiple id columns merge them else use use the string
+        let curr_well = &config
+            .id_cols
+            .iter()
+            .map(|i| {
+                rec.get(headers_vec.iter().position(|h| h == i).unwrap())
+                    .unwrap()
+            })
+            .collect::<Vec<&str>>()
+            .join("_");
+
+        if !plate_def.contains(&curr_well) {
+            continue;
+        }
+
+        let feature_values: Vec<(&str, f64)> = feature_idx
+            .par_iter()
+            .map(|&i| {
+                let feat_name = headers_vec[i].as_str();
+                let value = rec.get(i).unwrap().parse::<f64>().unwrap_or(f64::NAN);
+                return (feat_name, value);
+            })
+            .collect();
+
+        histograms.entry(curr_well.clone()).or_insert_with(|| {
+            let feature_map: DashMap<String, Hist1D> = DashMap::new();
+            let _ = &features.par_iter().for_each(|feat| {
+                let (_, vals) = min_max_vec.iter().find(|(f, _)| f == feat).unwrap();
+                let new_hist = Hist1D::new(config.nbins.clone(), vals.xlow, vals.xhigh);
+                feature_map.insert(feat.clone(), new_hist);
+            });
+
+            return feature_map;
+        });
+
+        let well_histogram = histograms.get_mut(curr_well).unwrap();
+        feature_values.par_iter().for_each(|(feat, val)| {
+            if let Some(mut hist) = well_histogram.get_mut(*feat) {
+                hist.fill(&[*val]);
+            }
+        });
+    }
+
+    let histograms: HashMap<String, HashMap<String, Hist1D>> = histograms
+        .into_iter()
+        .map(|(well_id, well_hist)| {
+            let hists = well_hist.into_iter().collect();
+            (well_id, hists)
+        })
+        .collect();
+
+    // NOTE: HistDiff calculation process below
+
+    for group in &config.block_def {
+        // clean the well names
+        let select_wells: HashSet<String> = clean_well_names(group).into_iter().collect();
+
+        let hd_group: HashMap<String, HashMap<String, Hist1D>> = histograms
+            .iter()
+            .filter(|(well, _)| select_wells.contains(*well))
+            .map(|(well, well_hist)| (well.clone(), well_hist.clone()))
+            .collect();
+    }
+
+    return Ok(());
+}

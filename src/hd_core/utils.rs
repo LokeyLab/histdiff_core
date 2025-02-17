@@ -85,6 +85,12 @@ pub fn plate_definition() -> Vec<String> {
 
     return res;
 }
+
+/// Makes the wells into a standard format
+///
+/// Turns "A01" into A1
+/// but "P24" is unaffected.
+/// This just removes the prefix digit of the well.
 pub fn clean_well_names(well_names: &[String]) -> Vec<String> {
     well_names
         .iter()
