@@ -126,6 +126,8 @@ pub fn calculate_scores(config: &UserConfig) -> Result<(), Box<dyn Error>> {
             .filter(|(well, _)| select_wells.contains(*well))
             .map(|(well, well_hist)| (well.clone(), well_hist.clone()))
             .collect();
+
+        // TODO: pull out control histtograms and the other operations
     }
 
     return Ok(());
