@@ -54,6 +54,7 @@ impl Hist1D {
         }
     }
 
+    /// Returns (bins [0], counts [1])
     pub fn data(&self) -> (&[f64], &[f64]) {
         (&self.bins, &self.counts)
     }

@@ -11,11 +11,13 @@ use std::{
 use crate::{
     get_min_max_plate,
     hd_core::{histograms, utils::clean_well_names},
-    Hist1D, UserConfig,
+    hist_square_diff, Hist1D, UserConfig,
 };
 
 #[allow(dead_code)]
-pub fn calculate_scores(config: &UserConfig) -> Result<(), Box<dyn Error>> {
+pub fn calculate_scores(
+    config: &UserConfig,
+) -> Result<HashMap<String, HashMap<String, f64>>, Box<dyn Error>> {
     let plate_def = &config.plate_def;
 
     let min_max = get_min_max_plate(config)?;
@@ -116,19 +118,108 @@ pub fn calculate_scores(config: &UserConfig) -> Result<(), Box<dyn Error>> {
         .collect();
 
     // NOTE: HistDiff calculation process below
-
+    let mut hd_scores: HashMap<String, HashMap<String, f64>> = HashMap::new();
     for group in &config.block_def {
         // clean the well names
         let select_wells: HashSet<String> = clean_well_names(group).into_iter().collect();
 
-        let hd_group: HashMap<String, HashMap<String, Hist1D>> = histograms
+        let mut hd_group: HashMap<String, HashMap<String, Hist1D>> = histograms
             .iter()
             .filter(|(well, _)| select_wells.contains(*well))
             .map(|(well, well_hist)| (well.clone(), well_hist.clone()))
             .collect();
 
-        // TODO: pull out control histtograms and the other operations
+        let mut cntr_hists: HashMap<String, Hist1D> = HashMap::new();
+
+        for feat in &features {
+            let mut sum_hist: Option<Hist1D> = None;
+
+            for well in &config.vehicle_cntrls {
+                if let Some(hist) = hd_group.get(well).and_then(|hists| hists.get(feat)) {
+                    if let Some(ref mut sums) = sum_hist {
+                        sums.add(hist);
+                    } else {
+                        sum_hist = Some(hist.clone());
+                    }
+                }
+            }
+
+            if let Some(sums) = sum_hist {
+                cntr_hists.insert(feat.clone(), sums);
+            }
+        }
+
+        if config.verbose {
+            println!("Adding control sum into HD group");
+        }
+        hd_group.insert("CNTRL".to_string(), cntr_hists);
+
+        if config.verbose {
+            println!("Smoothing and normalizing histograms");
+        }
+        for histograms in hd_group.values_mut() {
+            for feats in histograms.values_mut() {
+                feats.smooth(0.25);
+                feats.normalize();
+            }
+        }
+
+        if config.verbose {
+            println!("Calculating scores!");
+        }
+
+        let per_feature_score: Vec<HashMap<String, HashMap<String, f64>>> = features
+            .par_iter()
+            .map(|feat| {
+                let mut local_scores: HashMap<String, HashMap<String, f64>> = HashMap::new();
+
+                // lets get the exp wells
+                let mut exp_wells: Vec<Vec<f64>> = Vec::new();
+                let mut well_ids: Vec<String> = Vec::new();
+
+                for (well_id, histogram) in &hd_group {
+                    if well_id == "CNTRL" {
+                        continue; // skip control row
+                    }
+
+                    if let Some(hist) = histogram.get(feat) {
+                        exp_wells.push(hist.data().1.to_vec());
+                        well_ids.push(well_id.clone());
+                    }
+                }
+
+                let cntrl_row = hd_group
+                    .get("CNTRL")
+                    .and_then(|hist| hist.get(feat))
+                    .expect("CNTRL row not found!")
+                    .data()
+                    .1
+                    .to_vec();
+
+                let factor = 1.0;
+                let score = hist_square_diff(&exp_wells, &cntrl_row, factor)
+                    .expect("Unable to calculate HistDiff score");
+
+                for (well_id, hd_value) in well_ids.iter().zip(score.into_iter()) {
+                    local_scores
+                        .entry(well_id.clone())
+                        .or_insert_with(HashMap::new)
+                        .insert(feat.clone(), hd_value);
+                }
+
+                return local_scores;
+            })
+            .collect();
+
+        for local_scores in per_feature_score {
+            for (well_id, feat_map) in local_scores {
+                hd_scores
+                    .entry(well_id)
+                    .or_insert_with(HashMap::new)
+                    .extend(feat_map);
+            }
+        }
     }
 
-    return Ok(());
+    return Ok(hd_scores);
 }
