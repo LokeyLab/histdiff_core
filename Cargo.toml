@@ -9,6 +9,7 @@ csv = "1.3.1"
 ndarray = "0.16.1"
 approx = "0.5.1"
 dashmap = "6.1.0"
+polars = "*"
 
 [profile.test]
 inherits = "release"

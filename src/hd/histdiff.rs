@@ -6,6 +6,7 @@ use std::{
     error::Error,
     fs::File,
     io::BufReader,
+    usize,
 };
 
 use crate::{
@@ -14,10 +15,10 @@ use crate::{
     hist_square_diff, Hist1D, UserConfig,
 };
 
+use super::HistDiffRes;
+
 #[allow(dead_code)]
-pub fn calculate_scores(
-    config: &UserConfig,
-) -> Result<HashMap<String, HashMap<String, f64>>, Box<dyn Error>> {
+pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Error>> {
     let plate_def = &config.plate_def;
 
     let min_max = get_min_max_plate(config)?;
@@ -221,5 +222,11 @@ pub fn calculate_scores(
         }
     }
 
-    return Ok(hd_scores);
+    if config.verbose {
+        println!("Wrapping things up!");
+    }
+
+    let res = HistDiffRes::new(hd_scores);
+
+    return Ok(res);
 }

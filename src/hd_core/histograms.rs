@@ -122,17 +122,20 @@ pub fn hist_square_diff(
     ctrl: &Vec<f64>,
     factor: f64,
 ) -> Result<Vec<f64>, Box<dyn Error>> {
+    let exp = transpose_2d_vec(exp);
+
     let num_rows = exp.len();
     let num_cols = exp.get(0).map(|row| row.len()).unwrap_or(0);
 
     if num_rows == 0 || num_cols == 0 || ctrl.len() != num_rows {
+        // println!("{:?} {:?} {:?}", num_rows, num_cols, ctrl.len());
         return Err("Input vectors  must have matching shapes".into());
     }
 
     let ctrl_indices: Vec<f64> = (1..=num_rows).map(|x| x as f64).collect();
 
     let ctrl_mean_proxy: f64 = ctrl.iter().zip(&ctrl_indices).map(|(c, i)| c * i).sum();
-    let exp_mean_proxy: Vec<f64> = (0..num_cols)
+    let exp_mean_proxy: Vec<f64> = (0..num_rows)
         .map(|j| {
             exp.iter()
                 .zip(&ctrl_indices)
@@ -166,171 +169,20 @@ pub fn hist_square_diff(
     return Ok(result);
 }
 
-// pub fn get_min_max_plate<P: AsRef<Path>>(
-//     file_path: P,
-//     id_cols: &[String],
-//     verbose: bool,
-//     prob_out: Option<&str>,
-// ) -> Result<MinMaxPlateResult, Box<dyn Error>> {
-//     let file = File::open(file_path)?;
-//     let reader = BufReader::new(file);
-//
-//     let mut csv_reader = csv::ReaderBuilder::new()
-//         .delimiter(b'\t')
-//         .has_headers(true)
-//         .from_reader(reader);
-//
-//     let headers = csv_reader.headers()?.clone();
-//     let headers_vec = headers.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-//
-//     let id_col_indices: Vec<usize> = id_cols
-//         .iter()
-//         .map(|col| headers.iter().position(|h| h == col))
-//         .collect::<Option<Vec<_>>>()
-//         .ok_or("ID column not foind in headers")?;
-//
-//     let feature_indices: Vec<usize> = (0..headers.len())
-//         .filter(|i| !id_col_indices.contains(i))
-//         .collect();
-//
-//     // let mut xlow: HashMap<String, f64> = HashMap::new();
-//     // let mut xhigh: HashMap<String, f64> = HashMap::new();
-//     let xlow: DashMap<String, f64> = DashMap::new();
-//     let xhigh: DashMap<String, f64> = DashMap::new();
-//     let mut feats: Vec<String> = Vec::new();
-//
-//     feats = feature_indices
-//         .iter()
-//         .map(|&x| headers[x].to_string())
-//         .collect();
-//
-//     // initialize xlow and xhigh
-//     for feat in &feats {
-//         xlow.insert(feat.clone(), f64::NAN);
-//         xhigh.insert(feat.clone(), f64::NAN);
-//     }
-//
-//     for result in csv_reader.records() {
-//         let record = result?;
-//
-//         // println!("{:?}", record);
-//         feature_indices.par_iter().for_each(|&i| {
-//             // for &i in &feature_indices {
-//             let feat = &headers[i];
-//             let field = &record[i];
-//             if let Ok(value) = field.parse::<f64>() {
-//                 if value.is_finite() {
-//                     //xlow
-//                     xlow.entry(feat.to_string()).and_modify(|e| {
-//                         if e.is_nan() {
-//                             *e = value;
-//                         } else {
-//                             *e = e.min(value);
-//                         }
-//                     });
-//
-//                     //xhigh
-//                     xhigh.entry(feat.to_string()).and_modify(|e| {
-//                         if e.is_nan() {
-//                             *e = value;
-//                         } else {
-//                             *e = e.max(value);
-//                         }
-//                     });
-//                 };
-//             }
-//
-//             // skip nans
-//         });
-//
-//         // skip other gibberish
-//     }
-//
-//     let xlow: HashMap<String, f64> = xlow.into_iter().collect();
-//     let mut xhigh: HashMap<String, f64> = xhigh.into_iter().collect();
-//
-//     // adjust the xhigh when xhigh == xlow
-//     for feat in &feats {
-//         let low = *xlow.get(feat).unwrap_or(&f64::NAN);
-//         let high = *xhigh.get(feat).unwrap_or(&f64::NAN);
-//         if low.is_nan() || high.is_nan() {
-//             continue;
-//             // problematic_features.insert(feat.clone());
-//         } else if low == high {
-//             let adjusted_high = if low != 0.0 {
-//                 low + low * 0.5
-//             } else {
-//                 low + 1.0
-//             };
-//
-//             xhigh.insert(feat.clone(), adjusted_high);
-//         }
-//     }
-//
-//     // get problematic features
-//     let mut problematic_features: HashSet<String> = HashSet::new();
-//     for feat in &feats {
-//         let low = *xlow.get(feat).unwrap();
-//         let high = *xhigh.get(feat).unwrap();
-//         if low.is_nan() && high.is_nan() {
-//             problematic_features.insert(feat.clone());
-//         }
-//     }
-//
-//     let mut min_max_vec: Vec<(String, MinMax)> = Vec::new();
-//
-//     for feat in &feats {
-//         if problematic_features.contains(feat) {
-//             continue;
-//         }
-//         let low = xlow.get(feat).unwrap();
-//         let high = xhigh.get(feat).unwrap();
-//         min_max_vec.push((
-//             feat.clone(),
-//             MinMax {
-//                 xlow: *low,
-//                 xhigh: *high,
-//             },
-//         ))
-//     }
-//
-//     //remove problematic features
-//     feats.retain(|feat| !problematic_features.contains(feat));
-//
-//     // outputting problemativ features
-//     let problematic_features_vec = if !problematic_features.is_empty() {
-//         let problematic_features_list = problematic_features.into_iter().collect::<Vec<_>>();
-//         if verbose {
-//             eprintln!(
-//                 "MinMax: No values have been found in the following features: {}",
-//                 problematic_features_list.join(" | ")
-//             );
-//         }
-//         if let Some(prob_path_out) = prob_out {
-//             //let's write this out to a file'
-//             use std::fs::File;
-//             use std::io::Write;
-//
-//             let mut file = File::create(format!("{}_problematicFeats.csv", prob_path_out))?;
-//             for feat in &problematic_features_list {
-//                 writeln!(file, "{},noValues", feat)?;
-//             }
-//         }
-//         Some(problematic_features_list)
-//     } else {
-//         None
-//     };
-//
-//     if verbose {
-//         if let Some(ref prob_vec) = problematic_features_vec {
-//             eprintln!("len of bad feats: {}", prob_vec.len())
-//         }
-//         eprintln!("length of good feats: {}", feats.len());
-//     }
-//
-//     return Ok(MinMaxPlateResult {
-//         min_max: min_max_vec,
-//         features: feats,
-//         problemativ_features: problematic_features_vec,
-//     });
-// }
+fn transpose_2d_vec(matrix: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    let n_rows = matrix.len();
+    if n_rows == 0 {
+        return Vec::new();
+    }
+    let n_cols = matrix[0].len();
+
+    let mut transpose = vec![vec![0.0; n_rows]; n_cols];
+
+    for i in 0..n_rows {
+        for j in 0..n_cols {
+            transpose[j][i] = matrix[i][j];
+        }
+    }
+
+    return transpose;
+}
