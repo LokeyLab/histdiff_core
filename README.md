@@ -16,5 +16,5 @@ use: TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellb
 
 ### Fixes/TODOs
 
-- [ ] Figure out why the outputs are nbins x feat len size
+- [x] Figure out why the outputs are nbins x feat len size
   - I probably need to tweak and fiddle with matrix transposing

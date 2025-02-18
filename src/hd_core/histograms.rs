@@ -127,20 +127,22 @@ pub fn hist_square_diff(
     let num_rows = exp.len();
     let num_cols = exp.get(0).map(|row| row.len()).unwrap_or(0);
 
-    if num_rows == 0 || num_cols == 0 || ctrl.len() != num_rows {
-        // println!("{:?} {:?} {:?}", num_rows, num_cols, ctrl.len());
-        return Err("Input vectors  must have matching shapes".into());
-    }
+    // if num_rows == 0 || num_cols == 0 || ctrl.len() != num_rows {
+    //     // println!("{:?} {:?} {:?}", num_rows, num_cols, ctrl.len());
+    //     return Err("Input vectors  must have matching shapes".into());
+    // }
 
     let ctrl_indices: Vec<f64> = (1..=num_rows).map(|x| x as f64).collect();
 
     let ctrl_mean_proxy: f64 = ctrl.iter().zip(&ctrl_indices).map(|(c, i)| c * i).sum();
-    let exp_mean_proxy: Vec<f64> = (0..num_rows)
-        .map(|j| {
-            exp.iter()
+    let exp_mean_proxy: Vec<f64> = (0..num_cols)
+        .map(|i| {
+            let col = exp
+                .iter()
                 .zip(&ctrl_indices)
-                .map(|(row, i)| row[j] * i)
-                .sum()
+                .map(|(j, cntrl_idx)| j[i] * cntrl_idx)
+                .collect::<Vec<f64>>();
+            col.iter().sum()
         })
         .collect();
 
