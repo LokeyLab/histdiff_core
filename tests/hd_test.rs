@@ -8,7 +8,9 @@ fn test_hd() {
     //     .build_global()
     //     .unwrap();
 
-    let path = "/Users/dterciano/Desktop/LokeyLabFiles/TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellbycell.tsv";
+    let path = "/Users/dterciano/Desktop/LokeyLabFiles/TargetMol/cellData_examples/10uM/2bffddea-8a23-11ee-ac86-02420a000112_cellbycell copy 2.tsv";
+    //let path = "/Users/dterciano/Desktop/LokeyLabFiles/TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellbycell.tsv";
+
     // let path = "/home/derfelt/LokeyLabFiles/TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellbycell.tsv";
     let id: Vec<String> = vec!["WellName".into()];
     let useless: Option<Vec<String>> = {
