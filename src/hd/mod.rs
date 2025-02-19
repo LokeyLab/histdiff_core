@@ -2,7 +2,8 @@ use core::f64;
 use polars::prelude::*;
 use std::{
     collections::{HashMap, HashSet},
-    error::Error,
+    fs::File,
+    path::Path,
 };
 
 mod histdiff;
@@ -14,12 +15,25 @@ pub struct HistDiffRes {
 }
 
 impl HistDiffRes {
+    /// Creates a formal output for the HistDiff scores
     pub fn new(scores: HashMap<String, HashMap<String, f64>>) -> Self {
         let df = to_df(&scores).expect("Can't convert to dataframe");
         Self {
             raw_scores: scores,
             dataframe_scores: Some(df),
         }
+    }
+
+    pub fn to_csv<P: AsRef<Path>>(&mut self, path: P) -> &Self {
+        let mut file = File::create(path).expect("Could not create file!");
+        if let Some(df) = &mut self.dataframe_scores {
+            _ = CsvWriter::new(&mut file)
+                .include_header(true)
+                .with_separator(b',')
+                .finish(df);
+        }
+
+        self
     }
 }
 
@@ -42,7 +56,7 @@ fn to_df(raw_out: &HashMap<String, HashMap<String, f64>>) -> Result<DataFrame, P
 
     let row_labels: Vec<String> = row_keys.iter().map(|k| (*k).clone()).collect();
 
-    let row_series = Series::new("row_key".into(), row_labels);
+    let row_series = Series::new("id".into(), row_labels);
     series_list.push(row_series.into());
 
     for &col_key in &col_keys {

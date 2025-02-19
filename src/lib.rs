@@ -1,3 +1,4 @@
+#![allow(unused_parens, unused_imports)]
 mod hd;
 mod hd_core;
 pub use hd::{calculate_scores, HistDiffRes};

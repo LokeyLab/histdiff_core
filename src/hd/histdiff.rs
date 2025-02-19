@@ -1,5 +1,5 @@
 use core::f64;
-use dashmap::{mapref::entry, DashMap};
+use dashmap::DashMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
     collections::{HashMap, HashSet},
@@ -10,9 +10,7 @@ use std::{
 };
 
 use crate::{
-    get_min_max_plate,
-    hd_core::{histograms, utils::clean_well_names},
-    hist_square_diff, Hist1D, UserConfig,
+    get_min_max_plate, hd_core::utils::clean_well_names, hist_square_diff, Hist1D, UserConfig,
 };
 
 use super::HistDiffRes;
@@ -60,6 +58,8 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
         .collect();
 
     let histograms: DashMap<String, DashMap<String, Hist1D>> = DashMap::new();
+
+    let start_t = std::time::Instant::now();
 
     for record in csv_reader.records() {
         let rec = record?;
@@ -118,7 +118,13 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
         })
         .collect();
 
+    if config.verbose {
+        println!("Time to read file: {:?}", start_t.elapsed());
+    }
+
     // NOTE: HistDiff calculation process below
+    let start_t = std::time::Instant::now();
+
     let mut hd_scores: HashMap<String, HashMap<String, f64>> = HashMap::new();
     for group in &config.block_def {
         // clean the well names
@@ -224,6 +230,7 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
 
     if config.verbose {
         println!("Wrapping things up!");
+        println!("Finished calculations! Time: {:?}", start_t.elapsed());
     }
 
     let res = HistDiffRes::new(hd_scores);
