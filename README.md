@@ -18,4 +18,4 @@ use: TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellb
 
 ### Usage/Documentation:
 
-Run `cargo doc` to see the full documentation of the functions and structs
+Run `cargo doc --open` to see the full documentation of the functions and structs
