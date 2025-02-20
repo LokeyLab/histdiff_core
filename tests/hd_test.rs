@@ -1,5 +1,5 @@
 use histdiff_core::{calculate_scores, UserConfig};
-
+///Test HistDiff cases
 #[test]
 fn test_hd() {
     // global thread pool
