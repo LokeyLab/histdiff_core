@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Represents a general user input for HD functions
+/// This is better than re-typing out each function params
 #[derive(Debug, Clone)]
 pub struct UserConfig {
     pub path: PathBuf,
@@ -17,6 +19,9 @@ pub struct UserConfig {
 }
 
 impl UserConfig {
+    /// Creates a new UserConfig struct
+    ///
+    /// Also formats the options for HistDiff params
     pub fn new<P: AsRef<Path>>(
         path: P,
         id_cols: Vec<String>,
@@ -27,6 +32,7 @@ impl UserConfig {
         vehicle_cntrls: Vec<String>,
         nbins: Option<usize>,
     ) -> Self {
+        // Give a default plate definition is one is not provided
         let plate_def = match plate_def {
             Some(def) => def,
             None => plate_definition(),
@@ -37,6 +43,7 @@ impl UserConfig {
             None => 20 as usize,
         };
 
+        // format the block definitions
         let block_def = match block_def {
             Some(mut def) => {
                 let mut undefined_blocks: HashSet<String> = HashSet::new();
@@ -70,6 +77,13 @@ impl UserConfig {
     }
 }
 
+/// Generates a default 384 Well lables
+///
+/// # Examples
+/// ```
+/// "A01"
+/// "P24"
+/// ```
 pub fn plate_definition() -> Vec<String> {
     const WELL_384_LETTERS: std::ops::RangeInclusive<u8> = ('A' as u8)..=('P' as u8);
     const WELL_384_NUMBERS: std::ops::RangeInclusive<i32> = (1..=24);

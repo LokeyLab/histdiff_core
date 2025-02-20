@@ -11,6 +11,7 @@ use std::usize;
 
 use super::utils::UserConfig;
 
+/// exponential smoothing function
 pub fn exponential_smoothing(x: &[f64], alpha: f64) -> Vec<f64> {
     let n = x.len();
     let mut smoothing: Vec<f64> = Vec::with_capacity(n);
@@ -35,6 +36,7 @@ pub fn exponential_smoothing(x: &[f64], alpha: f64) -> Vec<f64> {
     return smoothing;
 }
 
+/// normalization function
 pub fn normalize(x: &[f64]) -> Vec<f64> {
     let sum: f64 = x.iter().sum();
     if sum == 0.0 {
@@ -44,12 +46,14 @@ pub fn normalize(x: &[f64]) -> Vec<f64> {
     }
 }
 
+/// Holds the min max value results
 #[derive(Debug, Clone)]
 pub struct MinMax {
     pub xlow: f64,
     pub xhigh: f64,
 }
 
+/// Holds the min max values for the entire dataset
 #[derive(Debug)]
 pub struct MinMaxPlateResult {
     pub min_max: Vec<(String, MinMax)>,
@@ -57,6 +61,7 @@ pub struct MinMaxPlateResult {
     pub problemativ_features: Option<Vec<String>>,
 }
 
+/// retrieves the min max values for a given dataset
 pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<dyn Error>> {
     let file = File::open(config.path.clone())?;
     let reader = BufReader::new(file);
@@ -217,6 +222,7 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
     return Ok(res);
 }
 
+/// Adjusts the min max values
 fn adjust_min_max(xlow: &DashMap<String, f64>, xhigh: &DashMap<String, f64>, feats: &[String]) {
     feats.par_iter().for_each(|feat| {
         let low = xlow.get(feat).map(|v| *v).unwrap_or(f64::NAN);

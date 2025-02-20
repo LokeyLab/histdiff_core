@@ -13,6 +13,7 @@ use std::usize;
 use super::calculations::{exponential_smoothing, normalize};
 use super::utils::UserConfig;
 
+/// A struct/interface to handle with histogram operations
 #[derive(Clone, Debug)]
 pub struct Hist1D {
     pub nbins: usize,
@@ -24,6 +25,12 @@ pub struct Hist1D {
 }
 
 impl Hist1D {
+    /// Creates a new histogram struct
+    ///
+    /// ## params:
+    /// - nbins => number of bins to use in a histogram
+    /// - xlow => the minimum range of values to use in a histogram
+    /// - xhigh => the maximium range of values to use in a histogram
     pub fn new(nbins: usize, xlow: f64, xhigh: f64) -> Self {
         let bin_width = (xhigh - xlow) / nbins as f64;
         let bins = (0..nbins)
@@ -40,6 +47,10 @@ impl Hist1D {
         };
     }
 
+    /// Fills and places the histogram into the appropriate bins in the histogram
+    ///
+    /// ## params:
+    /// - data => given a vector of floats, bin each value into the appropriate histogram bin
     pub fn fill(&mut self, data: &[f64]) {
         for &value in data {
             if value >= self.xlow && value < self.xhigh {
@@ -59,14 +70,20 @@ impl Hist1D {
         (&self.bins, &self.counts)
     }
 
+    /// Smoothens the histograms
+    ///
+    /// # params:
+    /// - alpha => a factor used for smoothing
     pub fn smooth(&mut self, alpha: f64) {
         self.counts = exponential_smoothing(&self.counts, alpha);
     }
 
+    /// Normalizes the histograms into manageable values
     pub fn normalize(&mut self) {
         self.counts = normalize(&self.counts)
     }
 
+    /// Adds 2 histograms together
     pub fn add(&mut self, other: &Hist1D) {
         assert_eq!(self.nbins, other.nbins);
         assert_eq!(self.xlow, other.xlow);
@@ -78,7 +95,7 @@ impl Hist1D {
     }
 }
 
-// deprecated below use native structures
+/// deprecated below use native structures
 pub fn hist_square_diff_deprecated(
     exp: &Array2<f64>,
     ctrl: &Array1<f64>,
@@ -117,20 +134,29 @@ pub fn hist_square_diff_deprecated(
     return Ok(result);
 }
 
+/// Main HistDiff function
+/// Uses standard data structures instead of ndarray
+///
+/// *Why? Reduces overhead*
+///
+/// # params:
+/// - exp => the experimental matrix
+/// - cntrl => the control vector
+/// - factor => the magnitute to apply on the result
 pub fn hist_square_diff(
     exp: &Vec<Vec<f64>>,
     ctrl: &Vec<f64>,
     factor: f64,
 ) -> Result<Vec<f64>, Box<dyn Error>> {
+    // transpose input matrix
     let exp = transpose_2d_vec(exp);
 
     let num_rows = exp.len();
     let num_cols = exp.get(0).map(|row| row.len()).unwrap_or(0);
 
-    // if num_rows == 0 || num_cols == 0 || ctrl.len() != num_rows {
-    //     // println!("{:?} {:?} {:?}", num_rows, num_cols, ctrl.len());
-    //     return Err("Input vectors  must have matching shapes".into());
-    // }
+    if num_rows == 0 || num_cols == 0 || ctrl.len() != num_rows {
+        return Err("Input vectors  must have matching shapes".into());
+    }
 
     let ctrl_indices: Vec<f64> = (1..=num_rows).map(|x| x as f64).collect();
 
@@ -171,6 +197,7 @@ pub fn hist_square_diff(
     return Ok(result);
 }
 
+/// tranposes a matrix from m x n to n x m
 fn transpose_2d_vec(matrix: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
     let n_rows = matrix.len();
     if n_rows == 0 {

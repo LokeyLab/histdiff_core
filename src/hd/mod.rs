@@ -9,6 +9,10 @@ use std::{
 mod histdiff;
 pub use histdiff::calculate_scores;
 
+/// Stores the HistDiff calculation
+///
+/// *Uses polars to handle dataframes*
+#[derive(Clone, Debug)]
 pub struct HistDiffRes {
     pub raw_scores: HashMap<String, HashMap<String, f64>>,
     pub dataframe_scores: Option<DataFrame>,
@@ -24,6 +28,8 @@ impl HistDiffRes {
         }
     }
 
+    /// Given an output path, output the scores as a csv file
+    /// *Note: file must end in a .csv extension*
     pub fn to_csv<P: AsRef<Path>>(&mut self, path: P) -> &Self {
         let mut file = File::create(path).expect("Could not create file!");
         if let Some(df) = &mut self.dataframe_scores {
@@ -37,6 +43,7 @@ impl HistDiffRes {
     }
 }
 
+/// convert the raw scores into a polars dataframe
 fn to_df(raw_out: &HashMap<String, HashMap<String, f64>>) -> Result<DataFrame, PolarsError> {
     let mut row_keys: Vec<&String> = raw_out.keys().collect();
     row_keys.sort();

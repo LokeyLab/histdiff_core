@@ -15,6 +15,13 @@ use crate::{
 
 use super::HistDiffRes;
 
+/// Calculates HistDiff
+///
+/// # params:
+/// - config => Make sure to generate a `UserConfig` with the `new()` association
+///
+/// # returns:
+/// - HistDiffRes => See documentation on HistDiffRes for options
 #[allow(dead_code)]
 pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Error>> {
     let plate_def = &config.plate_def;
