@@ -1,5 +1,6 @@
 use core::f64;
 use dashmap::DashMap;
+use log::{info, trace};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
     collections::{HashMap, HashSet},
@@ -24,6 +25,10 @@ use super::HistDiffRes;
 /// - HistDiffRes => See documentation on HistDiffRes for options
 #[allow(dead_code)]
 pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Error>> {
+    if config.verbose {
+        info!("Begin HistDiff Calculations");
+    }
+
     let plate_def = &config.plate_def;
 
     let min_max = get_min_max_plate(config)?;
@@ -67,6 +72,9 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
     let histograms: DashMap<String, DashMap<String, Hist1D>> = DashMap::new();
 
     let start_t = std::time::Instant::now();
+    if config.verbose {
+        trace!("Begin reading cell data file.");
+    }
 
     for record in csv_reader.records() {
         let rec = record?;
@@ -126,7 +134,8 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
         .collect();
 
     if config.verbose {
-        println!("Time to read file: {:?}", start_t.elapsed());
+        trace!("Time to read file: {:?}", start_t.elapsed());
+        trace!("Begin HistDiff histogram calculations and adjustments.");
     }
 
     // NOTE: HistDiff calculation process below
@@ -179,7 +188,7 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
         }
 
         if config.verbose {
-            println!("Calculating scores!");
+            trace!("Calculating scores!");
         }
 
         let per_feature_score: Vec<HashMap<String, HashMap<String, f64>>> = features
@@ -236,8 +245,8 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
     }
 
     if config.verbose {
-        println!("Wrapping things up!");
-        println!("Finished calculations! Time: {:?}", start_t.elapsed());
+        trace!("Wrapping things up!");
+        trace!("Finished calculations! Time: {:?}", start_t.elapsed());
     }
 
     let res = HistDiffRes::new(hd_scores);
