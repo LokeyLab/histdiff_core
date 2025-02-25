@@ -2,12 +2,14 @@ use std::sync::Once;
 
 use env_logger;
 use histdiff_core::{calculate_scores, UserConfig};
+use log;
 
 static INIT: Once = Once::new();
 
 fn init_logger() {
     INIT.call_once(|| {
         env_logger::Builder::from_default_env()
+            .filter_level(log::LevelFilter::Trace)
             .is_test(true)
             .try_init()
             .ok();
@@ -17,6 +19,7 @@ fn init_logger() {
 #[test]
 fn test_hd() {
     init_logger();
+    log::info!("Beginning MACOS test.");
     // global thread pool
     // rayon::ThreadPoolBuilder::new()
     //     .num_threads(15)
