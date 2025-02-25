@@ -17,4 +17,4 @@ rm "/Users/dterciano/Desktop/hd_standalone_integrity.txt"
 	-w "384_Well" \
 	--verbose
 
-cargo test --test hd_test -- --nocapture
+cargo test --test hd_test_macos -- --nocapture

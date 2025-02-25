@@ -10,6 +10,8 @@ The main purpose of this is to create a common HistDiff package for other progra
 Additionally, I want to attempt to refactor HistDiff to have the lowest memory profile as
 possible.
 
+_Note: Logging is used to display algorithm progress._
+
 ### Datasets to use for development:
 
 use: TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellbycell.tsv
