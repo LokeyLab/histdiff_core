@@ -162,11 +162,7 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
 
     // NOTE: End of start time
     if config.verbose {
-        trace!(
-            "End of reading file for MIN_MAX. Time: {:?}",
-            start_t.elapsed()
-        );
-        //eprintln!("End of reading MIN_MAX. Time: {:?}", start_t.elapsed());
+        trace!("End of reading MIN_MAX. Time: {:?}", start_t.elapsed());
     }
 
     // NOTE: Start of Adjustment and Exporting
