@@ -1,7 +1,25 @@
+use std::sync::Once;
+
+use env_logger;
 use histdiff_core::{calculate_scores, UserConfig};
+use log::info;
+
+static INIT: Once = Once::new();
+fn init_logger() {
+    INIT.call_once(|| {
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Trace)
+            .is_test(true)
+            .try_init()
+            .ok();
+    });
+}
+
 ///Test HistDiff cases
 #[test]
 fn test_hd() {
+    init_logger();
+    info!("Begin case 1 test");
     // global thread pool
     // rayon::ThreadPoolBuilder::new()
     //     .num_threads(15)
@@ -47,6 +65,8 @@ fn test_hd() {
 
 #[test]
 fn test_hd_case2() {
+    init_logger();
+    info!("Begin case 2 test");
     // global thread pool
     // rayon::ThreadPoolBuilder::new()
     //     .num_threads(15)
@@ -97,6 +117,8 @@ fn test_hd_case2() {
 
 #[test]
 fn test_hd_case3() {
+    init_logger();
+    info!("Begin case 3 test");
     // global thread pool
     // rayon::ThreadPoolBuilder::new()
     //     .num_threads(15)
