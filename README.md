@@ -21,3 +21,9 @@ use: TargetMol/cellData_examples/10uM/d0a5160e-9544-11ee-ac86-02420a000112_cellb
 ### Usage/Documentation:
 
 Run `cargo doc --open` to see the full documentation of the functions and structs
+
+### NOTES:
+
+- Vehicle specification must not contain any leading zeroes i.e.
+  - "F08" will not work but "F8" will work.
+  - All cell data inputs must NOT have **_ANY LEADING ZEROES in name._**

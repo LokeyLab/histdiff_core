@@ -52,7 +52,10 @@ fn test_hd() {
 
     // let useless = None;
 
-    let veh_cntrl: Vec<String> = vec!["A1".into(), "P24".into()];
+    // WARNING: HD does not like leading 0 in name i.e. F8 = good F08 = not good
+
+    // let veh_cntrl: Vec<String> = vec!["A1".into(), "P24".into()];
+    let veh_cntrl: Vec<String> = vec!["F8".into()];
 
     let config = UserConfig::new(path, id, useless, true, None, None, veh_cntrl, None);
 
