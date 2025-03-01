@@ -121,7 +121,7 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
     // NOTE: Read Start Time
     let start_t = std::time::Instant::now();
     if config.verbose {
-        trace!("Beginning to read file for MIN_MAX");
+        info!("Beginning to read file for MIN_MAX");
     }
 
     for res in csv_reader.records() {
@@ -162,13 +162,13 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
 
     // NOTE: End of start time
     if config.verbose {
-        trace!("End of reading MIN_MAX. Time: {:?}", start_t.elapsed());
+        info!("End of reading MIN_MAX. Time: {:?}", start_t.elapsed());
     }
 
     // NOTE: Start of Adjustment and Exporting
     let start_t = std::time::Instant::now();
     if config.verbose {
-        trace!("Starting MIN_MAX calculations and adjustments.");
+        info!("Starting MIN_MAX calculations and adjustments.");
     }
 
     adjust_min_max(&xlow, &xhigh, &feats);
@@ -214,14 +214,14 @@ pub fn get_min_max_plate(config: &UserConfig) -> Result<MinMaxPlateResult, Box<d
 
     // NOTE: End of start time
     if config.verbose {
-        trace!("End of processing. Time: {:?}", start_t.elapsed());
+        info!("End of processing. Time: {:?}", start_t.elapsed());
     }
 
     if config.verbose {
         if let Some(ref prob_vec) = problematic_features_vec {
-            trace!("len bad features: {}", prob_vec.len());
+            info!("len bad features: {}", prob_vec.len());
         }
-        trace!("len of good feats: {}", feats.len())
+        info!("len of good feats: {}", feats.len())
     }
 
     let res = MinMaxPlateResult {

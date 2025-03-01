@@ -73,7 +73,7 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
 
     let start_t = std::time::Instant::now();
     if config.verbose {
-        trace!("Begin reading cell data file.");
+        info!("Begin reading cell data file.");
     }
 
     for record in csv_reader.records() {
@@ -134,8 +134,8 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
         .collect();
 
     if config.verbose {
-        trace!("Time to read file: {:?}", start_t.elapsed());
-        trace!("Begin HistDiff histogram calculations and adjustments.");
+        info!("Time to read file: {:?}", start_t.elapsed());
+        info!("Begin HistDiff histogram calculations and adjustments.");
     }
 
     // NOTE: HistDiff calculation process below
@@ -188,7 +188,7 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
         }
 
         if config.verbose {
-            trace!("Calculating scores!");
+            info!("Calculating scores!");
         }
 
         let per_feature_score: Vec<HashMap<String, HashMap<String, f64>>> = features
@@ -245,8 +245,8 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
     }
 
     if config.verbose {
-        trace!("Wrapping things up!");
-        trace!("Finished calculations! Time: {:?}", start_t.elapsed());
+        info!("Wrapping things up!");
+        info!("Finished calculations! Time: {:?}", start_t.elapsed());
     }
 
     let res = HistDiffRes::new(hd_scores);
