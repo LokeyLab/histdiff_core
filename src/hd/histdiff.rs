@@ -173,12 +173,12 @@ pub fn calculate_scores(config: &UserConfig) -> Result<HistDiffRes, Box<dyn Erro
         }
 
         if config.verbose {
-            println!("Adding control sum into HD group");
+            info!("Adding control sum into HD group");
         }
         hd_group.insert("CNTRL".to_string(), cntr_hists);
 
         if config.verbose {
-            println!("Smoothing and normalizing histograms");
+            info!("Smoothing and normalizing histograms");
         }
         for histograms in hd_group.values_mut() {
             for feats in histograms.values_mut() {
